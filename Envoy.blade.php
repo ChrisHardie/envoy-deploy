@@ -15,7 +15,8 @@
 	$server = $_ENV['DEPLOY_SERVER'] ?? null;
 	$repo = $_ENV['DEPLOY_REPOSITORY'] ?? null;
 	$path = $_ENV['DEPLOY_PATH'] ?? null;
-	$slack = $_ENV['DEPLOY_SLACK_WEBHOOK'] ?? null;
+	$slack_webhook = $_ENV['DEPLOY_SLACK_WEBHOOK'] ?? null;
+	$slack_channel = $_ENV['DEPLOY_SLACK_CHANNEL'] ?? null;
 	$healthUrl = $_ENV['DEPLOY_HEALTH_CHECK'] ?? null;
 	$restartQueue = $_ENV['DEPLOY_RESTART_QUEUE'] ?? false;
 
@@ -23,7 +24,7 @@
 
 	$date = ( new DateTime )->format('YmdHis');
 	$env = isset($env) ? $env : "production";
-	$branch = isset($branch) ? $branch : "master";
+	$branch = isset($branch) ? $branch : "main";
 	$path = rtrim($path, '/');
 	$releases = $path.'/releases';
 	$release = $releases.'/'.$date;
@@ -175,10 +176,17 @@
 	echo "Rolled back to $(find . -maxdepth 1 -name "20*" | sort  | tail -n 2 | head -n1)"
 @endtask
 
-{{--
-@finished
-	@slack($slack, '#deployments', "Deployment on {$server}: {$date} complete")
-@endfinished
---}}
+
+@error
+    if ( isset($slack_webhook) && $slack_webhook ) {
+        @slack($slack_webhook, $slack_channel, "ERROR: Deployment on {$server}: {$date} failed")
+    }
+@enderror
+
+@success
+    if ( isset($slack_webhook) && $slack_webhook ) {
+        @slack($slack_webhook, $slack_channel, "Deployment on {$server}: {$date} complete")
+    }
+@endsuccess
 
 
