@@ -98,8 +98,8 @@
 
 @task('deployment_start')
 	@if ( isset($down) && $down )
-	cd {{ $path }}/current
-	php artisan down
+		cd {{ $path }}/current
+		php artisan down
 	@endif
 	@if ( isset($codeOnly) && $codeOnly)
 		cd {{ $release }}
@@ -159,22 +159,22 @@
 @task('deployment_reload')
 	{{ $php }} {{ $path }}/current/artisan storage:link
 	@if ( $restartQueue === 'horizon' )
-	{{ $php }} {{ $path }}/current/artisan horizon:terminate --quiet
-	echo "Horizon supervisor restarted"
+		{{ $php }} {{ $path }}/current/artisan horizon:terminate --quiet
+		echo "Horizon supervisor restarted"
 	@elseif ( $restartQueue != false )
-	{{ $php }} {{ $path }}/current/artisan queue:restart --quiet
-	echo "Queue daemon restarted"
+		{{ $php }} {{ $path }}/current/artisan queue:restart --quiet
+		echo "Queue daemon restarted"
 	@endif
 	@if ( $php_fpm )
-	sudo -S service {{ $php_fpm }} reload
-	echo "PHP-FPM restarted"
+		echo "" | sudo -S service {{ $php_fpm }} reload
+		echo "PHP-FPM restarted"
 	@endif
 @endtask
 
 @task('deployment_finish')
 	@if ( isset($down) && $down )
-	cd {{ $path }}/current
-	php artisan up
+		cd {{ $path }}/current
+		php artisan up
 	@endif
 	@if ( isset($codeOnly) && $codeOnly)
 		echo "Code only deployment finished"
