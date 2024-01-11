@@ -140,6 +140,7 @@
 	npm install --no-audit --no-fund --omit=optional
 	echo "Running npm..."
 	npm run {{ $npmScript }} --silent
+	rm -rf {{ $release }}/node_modules
 @endtask
 
 @task('deployment_cache')
