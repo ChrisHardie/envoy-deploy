@@ -201,9 +201,10 @@
 @task('health_check')
 	@if ( ! empty($healthUrl) )
 		if [ "$(curl --write-out "%{http_code}\n" --silent --output /dev/null {{ $healthUrl }})" == "200" ]; then
-			printf "\033[0;32mHealth check to {{ $healthUrl }} OK\033[0m\n"
+			printf "\033[0;32mHealth check to {{ $healthUrl }} OK\033[0m\n";
 		else
-			printf "\033[1;31mHealth check to {{ $healthUrl }} FAILED\033[0m\n"
+			printf "\033[1;31mHealth check to {{ $healthUrl }} FAILED\033[0m\n";
+			exit 1;
 		fi
 	@else
 		echo "No health check set"
