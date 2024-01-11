@@ -14,9 +14,10 @@
 	$php_fpm = $_ENV['DEPLOY_PHP_FPM'] ?? null;
 	$server = $_ENV['DEPLOY_SERVER'] ?? null;
 	$repo = $_ENV['DEPLOY_REPOSITORY'] ?? null;
+	$appName = $_ENV['APP_NAME'] ?? 'An application';
 	$path = $_ENV['DEPLOY_PATH'] ?? null;
-	$slack_webhook = $_ENV['DEPLOY_SLACK_WEBHOOK'] ?? null;
-	$slack_channel = $_ENV['DEPLOY_SLACK_CHANNEL'] ?? null;
+	$slackWebhook = $_ENV['DEPLOY_SLACK_WEBHOOK'] ?? null;
+	$slackChannel = $_ENV['DEPLOY_SLACK_CHANNEL'] ?? null;
 	$healthUrl = $_ENV['DEPLOY_HEALTH_CHECK'] ?? null;
 	$restartQueue = $_ENV['DEPLOY_RESTART_QUEUE'] ?? false;
 
@@ -25,9 +26,14 @@
 	$date = ( new DateTime )->format('YmdHis');
 	$env = isset($env) ? $env : "production";
 	$branch = isset($branch) ? $branch : "main";
+	$codeOnly = ('deploy' === $__task);
 	$path = rtrim($path, '/');
 	$releases = $path.'/releases';
-	$release = $releases.'/'.$date;
+	if ($codeOnly) {
+		$release = $path.'/current';
+	} else {
+		$release = $releases.'/'.$date;
+	}
 @endsetup
 
 @servers(['web' => $server])
@@ -50,10 +56,11 @@
 	fi
 @endtask
 
-@story('deploy')
+@story('build-deploy')
 	deployment_start
 	deployment_links
 	deployment_composer
+	deployment_npm
 	deployment_migrate
 	deployment_cache
 	deployment_symlink
@@ -63,21 +70,46 @@
 	deployment_option_cleanup
 @endstory
 
+@story('deploy')
+	deployment_start
+	deployment_cache
+	deployment_reload
+	deployment_finish
+	health_check
+@endstory
+
 @story('rollback')
 	deployment_rollback
 	deployment_reload
 	health_check
 @endstory
 
+@task('deploy_only_code')
+	@if ( isset($down) && $down )
+		cd {{ $path }}/current
+		php artisan down
+	@endif
+	cd {{ $release }}
+	echo "Code only deployment ({{ $date }}) started"
+	git pull origin {{ $branch }} -q
+@endtask
+
 @task('deployment_start')
 	@if ( isset($down) && $down )
 	cd {{ $path }}/current
 	php artisan down
 	@endif
-	cd {{ $path }}
-	echo "Deployment ({{ $date }}) started"
-	git clone {{ $repo }} --branch={{ $branch }} --depth=1 -q {{ $release }}
-	echo "Repository cloned"
+	@if ( isset($codeOnly) && $codeOnly)
+		cd {{ $release }}
+		echo "Code only deployment started"
+		git pull origin {{ $branch }} -q
+		echo "Repository updated"
+	@else
+		cd {{ $path }}
+		echo "Deployment ({{ $date }}) started"
+		git clone {{ $repo }} --branch={{ $branch }} --depth=1 -q {{ $release }}
+		echo "Repository cloned"
+	@endif
 @endtask
 
 @task('deployment_links')
@@ -111,6 +143,8 @@
 	{{ $php }} {{ $release }}/artisan view:clear --quiet
 	{{ $php }} {{ $release }}/artisan cache:clear --quiet
 	{{ $php }} {{ $release }}/artisan config:cache --quiet
+	{{ $php }} {{ $release }}/artisan route:cache --quiet
+	{{ $php }} {{ $release }}/artisan view:cache --quiet
 	echo "Cache cleared"
 @endtask
 
@@ -139,7 +173,11 @@
 	cd {{ $path }}/current
 	php artisan up
 	@endif
-	echo "Deployment ({{ $date }}) finished"
+	@if ( isset($codeOnly) && $codeOnly)
+		echo "Code only deployment finished"
+	@else
+		echo "Deployment ({{ $date }}) finished"
+	@endif
 @endtask
 
 @task('deployment_cleanup')
@@ -178,15 +216,15 @@
 
 
 @error
-    if ( isset($slack_webhook) && $slack_webhook ) {
-        @slack($slack_webhook, $slack_channel, "ERROR: Deployment on {$server}: {$date} failed")
-    }
+	if ( isset($slackWebhook) && $slackWebhook ) {
+		@slack($slackWebhook, $slackChannel, ":warning: ERROR: `{$__task}` for `{$appName}` on `{$server}`: `{$release}` failed")
+	}
 @enderror
 
 @success
-    if ( isset($slack_webhook) && $slack_webhook ) {
-        @slack($slack_webhook, $slack_channel, "Deployment on {$server}: {$date} complete")
-    }
+	if ( isset($slackWebhook) && $slackWebhook ) {
+		@slack($slackWebhook, $slackChannel, ":white_check_mark: SUCCESS: `{$__task}` for `{$appName}` on `{$server}`: `{$release}` complete")
+	}
 @endsuccess
 
 
