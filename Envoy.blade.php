@@ -25,6 +25,7 @@
 
 	$date = ( new DateTime )->format('YmdHis');
 	$env = isset($env) ? $env : "production";
+	$npmScript = isset($vite) ? 'build' : $env;
 	$branch = isset($branch) ? $branch : "main";
 	$codeOnly = ('deploy' === $__task);
 	$path = rtrim($path, '/');
@@ -76,6 +77,7 @@
 	deployment_reload
 	deployment_finish
 	health_check
+	deployment_option_cleanup
 @endstory
 
 @story('rollback')
@@ -128,15 +130,16 @@
 @endtask
 
 @task('deployment_migrate')
+	{{ $php }} {{ $release }}/artisan snapshot:create --compress
 	{{ $php }} {{ $release }}/artisan migrate --env={{ $env }} --force --no-interaction
 @endtask
 
 @task('deployment_npm')
 	echo "Installing npm dependencies..."
 	cd {{ $release }}
-	npm install --no-audit --no-fund --no-optional
+	npm install --no-audit --no-fund --omit=optional
 	echo "Running npm..."
-	npm run {{ $env }} --silent
+	npm run {{ $npmScript }} --silent
 @endtask
 
 @task('deployment_cache')
@@ -217,13 +220,13 @@
 
 @error
 	if ( isset($slackWebhook) && $slackWebhook ) {
-		@slack($slackWebhook, $slackChannel, ":warning: ERROR: `{$__task}` for `{$appName}` on `{$server}`: `{$release}` failed")
+		@slack($slackWebhook, $slackChannel, ":warning: ERROR: `{$__task}` for `{$appName}` on `{$server}:{$release}` failed")
 	}
 @enderror
 
 @success
 	if ( isset($slackWebhook) && $slackWebhook ) {
-		@slack($slackWebhook, $slackChannel, ":white_check_mark: SUCCESS: `{$__task}` for `{$appName}` on `{$server}`: `{$release}` complete")
+		@slack($slackWebhook, $slackChannel, ":white_check_mark: SUCCESS: `{$__task}` for `{$appName}` on `{$server}:{$release}` complete")
 	}
 @endsuccess
 
