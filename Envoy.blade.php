@@ -166,7 +166,7 @@
 		echo "Queue daemon restarted"
 	@endif
 	@if ( $php_fpm )
-		echo "" | sudo -S service {{ $php_fpm }} reload
+		sudo --non-interactive service {{ $php_fpm }} reload
 		echo "PHP-FPM restarted"
 	@endif
 @endtask
