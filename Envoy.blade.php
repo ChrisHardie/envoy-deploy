@@ -15,6 +15,7 @@
 	$server = $_ENV['DEPLOY_SERVER'] ?? null;
 	$repo = $_ENV['DEPLOY_REPOSITORY'] ?? null;
 	$appName = $_ENV['APP_NAME'] ?? 'An application';
+	$npmScript = $_ENV['DEPLOY_NPM_SCRIPT'] ?? 'production';
 	$path = $_ENV['DEPLOY_PATH'] ?? null;
 	$slackWebhook = $_ENV['DEPLOY_SLACK_WEBHOOK'] ?? null;
 	$slackChannel = $_ENV['DEPLOY_SLACK_CHANNEL'] ?? null;
@@ -25,7 +26,6 @@
 
 	$date = ( new DateTime )->format('YmdHis');
 	$env = isset($env) ? $env : "production";
-	$npmScript = isset($vite) ? 'build' : $env;
 	$branch = isset($branch) ? $branch : "main";
 	$codeOnly = ('deploy' === $__task);
 	$path = rtrim($path, '/');
