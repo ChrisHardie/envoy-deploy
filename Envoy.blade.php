@@ -14,7 +14,7 @@
 	$php_fpm = $_ENV['DEPLOY_PHP_FPM'] ?? null;
 	$server = $_ENV['DEPLOY_SERVER'] ?? null;
 	$repo = $_ENV['DEPLOY_REPOSITORY'] ?? null;
-	$appName = $_ENV['APP_NAME'] ?? 'An application';
+	$appName = $_ENV['DEPLOY_APP_NAME'] ?? 'An application';
 	$npmScript = $_ENV['DEPLOY_NPM_SCRIPT'] ?? 'production';
 	$path = $_ENV['DEPLOY_PATH'] ?? null;
 	$slackWebhook = $_ENV['DEPLOY_SLACK_WEBHOOK'] ?? null;
@@ -135,12 +135,16 @@
 @endtask
 
 @task('deployment_npm')
-	echo "Installing npm dependencies..."
-	cd {{ $release }}
-	npm install --no-audit --no-fund --omit=optional
-	echo "Running npm..."
-	npm run {{ $npmScript }} --silent
-	rm -rf {{ $release }}/node_modules
+    @if ( isset($npmScript) && 'none' !== $npmScript )
+        echo "Installing npm dependencies..."
+        cd {{ $release }}
+        npm install --no-audit --no-fund --omit=optional
+        echo "Running npm..."
+        npm run {{ $npmScript }} --silent
+        rm -rf {{ $release }}/node_modules
+    @else
+        echo "Not doing npm stuff"
+    @endif
 @endtask
 
 @task('deployment_cache')
