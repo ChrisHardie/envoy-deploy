@@ -20,6 +20,7 @@
 	$slackWebhook = $_ENV['DEPLOY_SLACK_WEBHOOK'] ?? null;
 	$slackChannel = $_ENV['DEPLOY_SLACK_CHANNEL'] ?? null;
 	$healthUrl = $_ENV['DEPLOY_HEALTH_CHECK'] ?? null;
+	$makeSnapshot = $_ENV['DEPLOY_MAKE_SNAPSHOT'] ?? false;
 	$restartQueue = $_ENV['DEPLOY_RESTART_QUEUE'] ?? false;
 
 	if ( substr($path, 0, 1) !== '/' ) throw new Exception('Careful - your deployment path does not begin with /');
@@ -130,21 +131,23 @@
 @endtask
 
 @task('deployment_migrate')
-	{{ $php }} {{ $release }}/artisan snapshot:create --compress {{ $date }}-deploy
+	@if( false != $makeSnapshot )
+		{{ $php }} {{ $release }}/artisan snapshot:create --compress {{ $date }}-deploy
+	@endif
 	{{ $php }} {{ $release }}/artisan migrate --env={{ $env }} --force --no-interaction
 @endtask
 
 @task('deployment_npm')
-    @if ( isset($npmScript) && 'none' !== $npmScript )
-        echo "Installing npm dependencies..."
-        cd {{ $release }}
-        npm install --no-audit --no-fund --omit=optional
-        echo "Running npm..."
-        npm run {{ $npmScript }} --silent
-        rm -rf {{ $release }}/node_modules
-    @else
-        echo "Not doing npm stuff"
-    @endif
+	@if ( isset($npmScript) && 'none' !== $npmScript )
+		echo "Installing npm dependencies..."
+		cd {{ $release }}
+		npm install --no-audit --no-fund --omit=optional
+		echo "Running npm..."
+		npm run {{ $npmScript }} --silent
+		rm -rf {{ $release }}/node_modules
+	@else
+		echo "Not doing npm stuff"
+	@endif
 @endtask
 
 @task('deployment_cache')
