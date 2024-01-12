@@ -130,7 +130,7 @@
 @endtask
 
 @task('deployment_migrate')
-	{{ $php }} {{ $release }}/artisan snapshot:create --compress
+	{{ $php }} {{ $release }}/artisan snapshot:create --compress {{ $date }}-deploy
 	{{ $php }} {{ $release }}/artisan migrate --env={{ $env }} --force --no-interaction
 @endtask
 
